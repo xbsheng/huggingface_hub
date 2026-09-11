@@ -100,6 +100,22 @@ def test_explicit_human_reenables_progress_bars():
         enable_progress_bars()
 
 
+def test_human_mode_does_not_touch_progress_bars(monkeypatch):
+    # Progress bars must not be re-enabled unless we disabled them ourselves: calling
+    # `enable_progress_bars()` unconditionally emits a `UserWarning` on every `hf` command
+    # when `HF_HUB_DISABLE_PROGRESS_BARS` is set.
+    from huggingface_hub.cli import _output as output_module
+
+    calls = []
+    monkeypatch.setattr(output_module, "disable_progress_bars", lambda name=None: calls.append("disable"))
+    monkeypatch.setattr(output_module, "enable_progress_bars", lambda name=None: calls.append("enable"))
+
+    o = Output()  # conftest pins an empty registry, so auto resolves to human
+    o.set_mode(HUMAN)
+    assert o.mode == HUMAN
+    assert calls == []
+
+
 # =============================================================================
 # out.result()
 # =============================================================================

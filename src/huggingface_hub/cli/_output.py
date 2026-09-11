@@ -58,17 +58,23 @@ class Output:
 
     def __init__(self) -> None:
         self.no_truncate = False
+        # Starts as `human` so the first `set_mode(auto)` does not attempt to re-enable
+        # progress bars (see `set_mode`).
+        self.mode = OutputFormat.human
         self.set_mode()
 
     def set_mode(self, mode: OutputFormat = OutputFormat.auto) -> None:
         """Override the output mode (called once at startup and again per '--format' flag)."""
         if mode == OutputFormat.auto:
             mode = OutputFormat.agent if is_agent() else OutputFormat.human
-        self.mode = mode
         if mode != OutputFormat.human:
             disable_progress_bars()
-        else:
+        elif self.mode != OutputFormat.human:
+            # Only restore progress bars when switching away from a non-human mode we
+            # disabled them for. Calling `enable_progress_bars()` unconditionally would
+            # warn on every run when `HF_HUB_DISABLE_PROGRESS_BARS` forces them off.
             enable_progress_bars()
+        self.mode = mode
 
     def set_no_truncate(self, no_truncate: bool) -> None:
         """Toggle off cell truncation for human table output."""
